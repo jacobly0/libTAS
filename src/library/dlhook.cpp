@@ -27,21 +27,18 @@
 namespace libtas {
 
 /* Set of libraries that are loaded by the game using dlopen */
-/* It is stored as a pointer and created on first use because games can
- * sometimes call hooked functions very early in their execution, resulting in
- * some objects (even static) not been initialized. And using an uninitialized
- * std container triggers a crash. So for now we are dynamically initializing
- * it, but we should come up with a better solution.
- */
-static std::set<std::string>* libraries;
+static std::set<std::string> &libraries() {
+    /* Games can sometimes call hooked functions very early in their execution,
+     * possibly before all globals are constructed, so we must use a local static
+     * which gets constructed on first use instead of a global.
+     */
+    static std::set<std::string> libraries;
+    return libraries;
+}
 
 std::string find_lib(const char* library)
 {
-    if (!libraries) {
-        libraries = new std::set<std::string>();
-    }
-
-    for (auto const& itr : *libraries)
+    for (auto const& itr : libraries())
         if (itr.find(library) != std::string::npos)
             return itr;
 
@@ -68,12 +65,8 @@ void *dlopen(const char *file, int mode) throw() {
 
     void *result = orig::dlopen(file, mode);
 
-    if (!libraries) {
-        libraries = new std::set<std::string>();
-    }
-
     if (result && (file != nullptr))
-        libraries->insert(std::string(file));
+        libraries().insert(std::string(file));
     return result;
 }
 

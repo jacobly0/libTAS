@@ -1,16 +1,19 @@
-all: hooklib3 hooklib2 hooklib1 hookmain
+all: hookmain libhooklib2.so
 
-hookmain: hookmain.c
-	gcc -g -o hookmain hookmain.c -lhooklib1 -ldl -L.
+hookmain: hookmain.c libhooktest.so libhooklib1.so
+	gcc -g -o hookmain hookmain.c -lhooktest -lhooklib1 -ldl -L.
 
-hooklib1: hooklib1.c
-	gcc -g -o libhooklib1.so hooklib1.c -shared
+libhooktest.so: hooktest.c
+	gcc -g -o $@ $< -shared
 
-hooklib2: hooklib2.c hooklib3.c
-	gcc -g -o libhooklib2.so hooklib2.c -lhooklib3 -shared -L.
+libhooklib1.so: hooklib1.c
+	gcc -g -o $@ $< -shared
 
-hooklib3: hooklib3.c
-	gcc -g -o libhooklib3.so hooklib3.c -shared
+libhooklib2.so: hooklib2.c libhooklib3.so
+	gcc -g -o $@ $< -lhooklib3 -shared -L.
+
+libhooklib3.so: hooklib3.c
+	gcc -g -o $@ $< -shared
 
 clean:
-	rm hookmain libhooklib1.so libhooklib2.so libhooklib3.so
+	rm -f hookmain libhooktest.so libhooklib1.so libhooklib2.so libhooklib3.so

@@ -28,14 +28,20 @@ DEFINE_ORIG_POINTER(pthread_key_delete);
 DEFINE_ORIG_POINTER(pthread_getspecific);
 DEFINE_ORIG_POINTER(pthread_setspecific);
 
-static std::map<pthread_key_t, void(*)(void*)> *pthread_keys;
+static std::map<pthread_key_t, void(*)(void*)> pthread_keys() {
+    /* Using initialization on first use idiom because this object could be
+     * used before static object have a chance to initialize.
+     */
+    static std::map<pthread_key_t, void(*)(void*)> pthread_keys;
+    return pthread_keys;
+}
 
 void clear_pthread_keys()
 {
     LINK_NAMESPACE(pthread_getspecific, "pthread");
     LINK_NAMESPACE(pthread_setspecific, "pthread");
 
-    for( const auto& pair : *pthread_keys ) {
+    for( const auto& pair : pthread_keys() ) {
         if (orig::pthread_getspecific(pair.first)) {
             debuglog(LCF_THREAD, "  removing value from key ", pair.first);
             orig::pthread_setspecific(pair.first, nullptr);
@@ -57,14 +63,7 @@ int pthread_key_create (pthread_key_t *key, void (*destr_function) (void *)) thr
 
     debuglog(LCF_THREAD, "   returning ", *key);
 
-    /* Using initialization on first use idiom because this object could be
-     * used before static object have a chance to initialize.
-     */
-    if (!pthread_keys) {
-        pthread_keys = new std::map<pthread_key_t, void(*)(void *)>;
-    }
-
-    pthread_keys->insert(std::pair<pthread_key_t, void(*)(void*)>(*key,destr_function));
+    pthread_keys().insert(std::make_pair(*key, destr_function));
 
     return ret;
 }
@@ -76,9 +75,9 @@ int pthread_key_delete (pthread_key_t key) throw()
 
     int ret = orig::pthread_key_delete(key);
 
-    auto it = pthread_keys->find(key);
-    if (it != pthread_keys->end()) {
-        pthread_keys->erase (it);
+    auto it = pthread_keys().find(key);
+    if (it != pthread_keys().end()) {
+        pthread_keys().erase (it);
     }
 
     return ret;

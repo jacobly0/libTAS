@@ -26,6 +26,7 @@ namespace libtas {
 DEFINE_ORIG_POINTER(libtasTestFunc1);
 DEFINE_ORIG_POINTER(libtasTestFunc2);
 DEFINE_ORIG_POINTER(libtasTestFunc3);
+DEFINE_ORIG_POINTER(libtasTestFunc4);
 
 /* Override */ int libtasTestFunc1()
 {
